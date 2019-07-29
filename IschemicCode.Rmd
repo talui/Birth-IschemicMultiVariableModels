@@ -1,0 +1,125 @@
+---
+title: "IschemicCode"
+author: "Troy lui"
+date: "July 12, 2018"
+output: html_document
+---
+
+#PART II
+
+```{r, echo = FALSE}
+library("readxl")
+ischemic = read_excel("/Users/Troy/Downloads/ischemic.xlsx")
+fit.poisson = glm(visits ~ cost + age + gender + inter + drugs + complications + comorbidities + duration + cost*age + cost*gender + cost*inter + cost*complications + cost*comorbidities + cost*duration + age*inter + age*drugs + age*complications + age*comorbidities + age*duration + inter*drugs + inter*complications + inter*comorbidities + inter*duration + complications*comorbidities + comorbidities*duration, data = ischemic, family = poisson())
+summary(fit.poisson)
+```
+
+```{r, echo = FALSE}
+#Diagnostics 
+PearsonResidual = residuals(fit.poisson, type = "pearson")
+DevianceResidual = residuals(fit.poisson, type = "deviance")
+Dsquare = sum(PearsonResidual)
+Gsquare = sum(DevianceResidual)
+# of betas minus 1 
+Dsquare > qchisq(0.95, length(fit.poisson)-24)
+Gsquare > qchisq(0.95, length(fit.poisson)-24)
+boxplot(cbind(PearsonResidual, DevianceResidual), labels = c("Pearson", "Deviance"), main = "Residual Distributions")
+plot(fit.poisson$fitted.values,PearsonResidual,xlab="fitted value",ylab="pearson", main = "Pearson")
+fit.cv = smooth.spline(fit.poisson$fitted.values,PearsonResidual, cv = FALSE,spar=0.9) # CV fit
+lines(fit.cv, col = "red")
+abline(h=0,lty=3)
+plot(fit.poisson$fitted.values,DevianceResidual,xlab="fitted value",ylab="deviance", main = "Deviance")
+fit.cv = smooth.spline(fit.poisson$fitted.values,DevianceResidual, cv = FALSE,spar=0.9) # CV fit
+lines(fit.cv, col = "red")
+abline(h=0,lty=3)
+library(lawstat)
+runs.test(y = PearsonResidual, plot.it = FALSE)
+```
+
+```{r, echo = FALSE}
+ischemic.step = stepAIC(fit.poisson, direction = "backward", k=2)
+ischemic.step$anova
+```
+
+```{r, echo = FALSE}
+fin.ischemic = glm(visits ~ cost + age + gender + inter + drugs + complications + duration + cost*inter + cost*duration + age*complications + age*duration + inter*drugs + inter*complications + inter*duration, data = ischemic, family = poisson())
+summary(fin.ischemic)
+```
+
+
+```{r, echo = FALSE}
+G2 = 990.69
+````
+
+
+```{r, echo = FALSE}
+#Diagnostics 
+PearsonResidual = residuals(fin.ischemic, type = "pearson")
+DevianceResidual = residuals(fin.ischemic, type = "deviance")
+Dsquare = sum(PearsonResidual)
+Gsquare = sum(DevianceResidual)
+# of betas minus 1 
+Dsquare > qchisq(0.95, length(fin.ischemic)-24)
+Gsquare > qchisq(0.95, length(fin.ischemic)-24)
+boxplot(cbind(PearsonResidual, DevianceResidual), labels = c("Pearson", "Deviance"), main = "Residual Distributions")
+plot(fin.ischemic$fitted.values,PearsonResidual,xlab="fitted value",ylab="pearson", main = "Pearson")
+fit.cv = smooth.spline(fin.ischemic$fitted.values,PearsonResidual, cv = FALSE,spar=0.9) # CV fit
+lines(fit.cv, col = "red")
+abline(h=0,lty=3)
+plot(fin.ischemic$fitted.values,DevianceResidual,xlab="fitted value",ylab="deviance", main = "Deviance")
+fit.cv = smooth.spline(fin.ischemic$fitted.values,DevianceResidual, cv = FALSE,spar=0.9) # CV fit
+lines(fit.cv, col = "red")
+abline(h=0,lty=3)
+library(lawstat)
+runs.test(y = PearsonResidual, plot.it = FALSE)
+```
+
+```{r, echo = FALSE}
+#transformed 
+tischemic = ischemic
+tischemic$cost = sqrt(tischemic$cost)
+tischemic$age = sqrt(tischemic$age)
+tischemic$inter = sqrt(tischemic$inter)
+tischemic$drugs = sqrt(tischemic$drugs)
+tischemic$complications = sqrt(tischemic$complications)
+tischemic$comorbidities = sqrt(tischemic$comorbidities)
+tischemic$duration = sqrt(tischemic$duration)
+trans.poisson = glm(visits ~ cost + age + gender + inter + drugs + complications + comorbidities + duration, data = tischemic, family = poisson())
+summary(trans.poisson)
+```
+
+```{r, echo = FALSE}
+tischemic.step = stepAIC(trans.poisson, trace = FALSE)
+tischemic.step$anova
+```
+
+```{r, echo = FALSE}
+tischemic.step
+```
+
+```{r, echo = FALSE}
+#Diagnostics 
+PearsonResidual = residuals(tischemic.step, type = "pearson")
+DevianceResidual = residuals(tischemic.step, type = "deviance")
+Dsquare = sum(PearsonResidual)
+Gsquare = sum(DevianceResidual)
+# of betas minus 1 
+Dsquare > qchisq(0.95, length(tischemic.step)-24)
+Gsquare > qchisq(0.95, length(tischemic.step)-24)
+boxplot(cbind(PearsonResidual, DevianceResidual), labels = c("Pearson", "Deviance"), main = "Residual Distributions")
+plot(tischemic.step$fitted.values,PearsonResidual,xlab="fitted value",ylab="pearson", main = "Pearson")
+fit.cv = smooth.spline(tischemic.step$fitted.values,PearsonResidual, cv = FALSE,spar=0.9) # CV fit
+lines(fit.cv, col = "red")
+abline(h=0,lty=3)
+plot(tischemic.step$fitted.values,DevianceResidual,xlab="fitted value",ylab="deviance", main = "Deviance")
+fit.cv = smooth.spline(tischemic.step$fitted.values,DevianceResidual, cv = FALSE,spar=0.9) # CV fit
+lines(fit.cv, col = "red")
+abline(h=0,lty=3)
+library(lawstat)
+runs.test(y = PearsonResidual, plot.it = FALSE)
+```
+
+Appendix
+```{r, ref.label=knitr::all_labels(), echo = TRUE, eval = FALSE}
+ 
+``` 
