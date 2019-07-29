@@ -1,0 +1,122 @@
+---
+title: "BirthCode"
+author: "Troy lui"
+date: "December 12, 2018"
+output:
+  word_document: default
+  html_document: default
+---
+
+#PART I
+
+```{r, echo = FALSE}
+library(MASS)
+library("readxl")
+baby = read_excel("/Users/Troy/Downloads/baby.xls")
+babyf = baby
+babyf$smoke[babyf$smoke == "yes"] = 1
+babyf$smoke[babyf$smoke == "no"] = 0
+babyf$pre[babyf$pre == "yes"] = 1
+babyf$pre[babyf$pre == "no"] = 0
+babyf$hyp[babyf$hyp == "yes"] = 1
+babyf$hyp[babyf$hyp == "no"] = 0
+#babyf$visits[babyf$visits >= 2] = "2+"
+```
+
+```{r, echo = FALSE}
+inbabymod = glm(birth~age + weight + smoke + pre + hyp + visits + age*weight + weight*hyp + weight*pre + hyp*smoke + pre*age + hyp*age + weight*smoke + smoke*age, family = binomial(), data = babyf)
+summary(inbabymod)
+#initial saturated model 
+```
+
+```{r, echo = FALSE}
+#diagnostics for initial model 
+PearsonResidual = residuals(inbabymod, type = "pearson")
+DevianceResidual = residuals(inbabymod, type = "deviance")
+Dsquare = sum(PearsonResidual)
+Gsquare = sum(DevianceResidual)
+# of betas minus 1 
+Dsquare > qchisq(0.95, length(inbabymod)-14)
+Gsquare > qchisq(0.95, length(inbabymod)-14)
+boxplot(cbind(PearsonResidual, DevianceResidual), labels = c("Pearson", "Deviance"), main = "Residual Distributions")
+```
+
+```{r, echo = FALSE}
+#more diagnostics 
+plot(inbabymod$fitted.values,PearsonResidual,xlab="fitted value",ylab="pearson", main = "Pearson")
+fit.cv = smooth.spline(inbabymod$fitted.values,PearsonResidual, cv = FALSE,spar=0.9) # CV fit
+lines(fit.cv, col = "red")
+abline(h=0,lty=3)
+```
+
+```{r, echo = FALSE}
+#more diagnostics 
+plot(inbabymod$fitted.values,DevianceResidual,xlab="fitted value",ylab="deviance", main = "Deviance")
+fit.cv = smooth.spline(inbabymod$fitted.values,DevianceResidual, cv = FALSE,spar=0.9) # CV fit
+lines(fit.cv, col = "red")
+abline(h=0,lty=3)
+```
+
+```{r, echo = FALSE}
+#last diagnostic 
+library(lawstat)
+runs.test(y = DevianceResidual, plot.it = FALSE)
+```
+
+
+```{r, echo = FALSE}
+#choosing the model from the saturated model 
+baby.step = stepAIC(inbabymod, trace = FALSE)
+baby.step$anova
+#final model
+```
+
+```{r, echo = FALSE}
+baby.fit = glm(formula = birth ~ age + weight + smoke + pre + hyp + age*hyp, family = binomial(), data = babyf)
+summary(baby.fit)
+```
+
+
+```{r, echo = FALSE}
+#estimate percentage of correct classification 
+babyf$age = as.numeric(babyf$age)
+babyf$weight = as.numeric(babyf$weight)
+babyf$smoke = as.numeric(babyf$smoke)
+babyf$pre = as.numeric(babyf$pre)
+babyf$hyp = as.numeric(babyf$hyp)
+babyf$predict = (-2.342043 + 0.073073*babyf$age + 0.016360*babyf$weight - 0.514877*babyf$smoke - 1.809716*babyf$pre + 3.214987*babyf$hyp - 0.222579*babyf$age*babyf$hyp)
+babyf$predict[babyf$predict>.5] = 1
+babyf$predict[babyf$predict<=.5] = 0
+babyf$result = (babyf$birth == babyf$predict)
+#table(babyf$result)
+#55 false 134 true 
+#134/(134+55) = 0.7089947
+```
+
+
+```{r, echo = FALSE}
+#Diagnostics 
+PearsonResidual = residuals(baby.fit, type = "pearson")
+DevianceResidual = residuals(baby.fit, type = "deviance")
+Dsquare = sum(PearsonResidual)
+Gsquare = sum(DevianceResidual)
+# of betas minus 1 
+Dsquare > qchisq(0.95, length(baby.fit)-6)
+Gsquare > qchisq(0.95, length(baby.fit)-6)
+boxplot(cbind(PearsonResidual, DevianceResidual), labels = c("Pearson", "Deviance"), main = "Residual Distributions")
+plot(baby.fit$fitted.values,PearsonResidual,xlab="fitted value",ylab="pearson", main = "Pearson")
+fit.cv = smooth.spline(baby.fit$fitted.values,PearsonResidual, cv = FALSE,spar=0.9) # CV fit
+lines(fit.cv, col = "red")
+abline(h=0,lty=3)
+plot(baby.fit$fitted.values,DevianceResidual,xlab="fitted value",ylab="deviance", main = "Deviance")
+fit.cv = smooth.spline(baby.fit$fitted.values,DevianceResidual, cv = FALSE,spar=0.9) # CV fit
+lines(fit.cv, col = "red")
+abline(h=0,lty=3)
+library(lawstat)
+runs.test(y = PearsonResidual, plot.it = FALSE)
+```
+
+Appendix
+```{r, ref.label=knitr::all_labels(), echo = TRUE, eval = FALSE}
+ 
+``` 
